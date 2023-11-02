@@ -14,29 +14,21 @@ exports.list = asyncHandler(async (req, res, next) => {
 });
 
 exports.read = asyncHandler(async (req, res, next) => {
-  res.json(`NOT IMPLEMENTED: User read: ${req.params.id}`);
+  const user = await User.findById(req.params.id, "username articles comments")
+    .populate("articles comments")
+    .exec();
+
+  res.json(user);
 });
 
-exports.create_get = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: User create GET");
-});
-
-exports.create_post = asyncHandler(async (req, res, next) => {
+exports.create = asyncHandler(async (req, res, next) => {
   res.json("NOT IMPLEMENTED: User create POST");
 });
 
-exports.delete_get = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: User delete GET");
-});
-
-exports.delete_post = asyncHandler(async (req, res, next) => {
+exports.delete = asyncHandler(async (req, res, next) => {
   res.json("NOT IMPLEMENTED: User delete POST");
 });
 
-exports.update_get = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: User update GET");
-});
-
-exports.update_post = asyncHandler(async (req, res, next) => {
+exports.update = asyncHandler(async (req, res, next) => {
   res.json("NOT IMPLEMENTED: User update POST");
 });
