@@ -6,7 +6,11 @@ exports.index = asyncHandler(async (req, res, next) => {
 });
 
 exports.list = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: User List");
+  const allUsers = await User.find({}, "username articles comments")
+    .populate("articles comments")
+    .exec();
+
+  res.json(allUsers);
 });
 
 exports.read = asyncHandler(async (req, res, next) => {
