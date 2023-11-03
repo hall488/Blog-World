@@ -1,80 +1,48 @@
-const passport = require("passport");
-const localStrategy = require("passport-local").Strategy;
-const User = require("../models/user");
-const JWTstrategy = require("passport-jwt").Strategy;
-const ExtractJWT = require("passport-jwt").ExtractJwt;
+require("dotenv").config();
+const jwt = require("jsonwebtoken");
+const Article = require("../models/article");
 
-passport.use(
-  "signup",
-  new localStrategy(
-    {
-      usernameField: "username",
-      passwordField: "password",
-      passReqToCallback: true,
-    },
-    async (req, username, password, done) => {
-      try {
-        const name = await User.findOne({ username });
+exports.verifyUser = (req, res, next) => {
+  jwt.verify(req.body.token, process.env.JWT_KEY, (err, decoded) => {
+    if (err) {
+      res.json(err);
+    } else if (req.params.id !== decoded.id) {
+      res.status(422).json({ error: "Unauthorized" });
+    } else {
+      req.currentUser = decoded;
+      next();
+    }
+  });
+};
 
-        if (name) {
-          return res.status(422).json({ error: "User already exists" });
-        }
-
-        if (req.body["confirm-password"] != password) {
-          return res.status(422).json({ error: "Passwords don't match" });
-        }
-
-        const user = await User.create({ username, password });
-
-        return done(null, user);
-      } catch (error) {
-        done(error);
+exports.verifyArticle = (req, res, next) => {
+  jwt.verify(req.body.token, process.env.JWT_KEY, async (err, decoded) => {
+    if (err) {
+      return res.json(err);
+    } else {
+      let article = await Article.findById(req.params.id)
+        .populate("user")
+        .exec();
+      if (!article) {
+        return res.status(422).json({ error: "Article does not exist" });
+      } else if (article.user.id !== decoded.id) {
+        return res.status(422).json({ error: "Unauthorized" });
+      } else {
+        req.currentUser = decoded;
+        next();
       }
     }
-  )
-);
+  });
+};
 
-passport.use(
-  "login",
-  new localStrategy(
-    {
-      usernameField: "username",
-      passwordField: "password",
-    },
-    async (username, password, done) => {
-      try {
-        const user = await User.findOne({ username });
+exports.currentUser = (req, res, next) => {
+  jwt.verify(req.body.token, process.env.JWT_KEY, (err, decoded) => {
+    if (err) {
+      return res.json(err);
+    } else {
+      req.currentUser = decoded;
 
-        if (!user) {
-          return res.status(422).json({ error: "User not found" });
-        }
-
-        const validate = await user.isValidPassword(password);
-
-        if (!validate) {
-          return res.status(422).json({ error: "Wrong password" });
-        }
-
-        return done(null, user, { message: "Logged in Successfully" });
-      } catch (error) {
-        return done(error);
-      }
+      next();
     }
-  )
-);
-
-passport.use(
-  new JWTstrategy(
-    {
-      secretOrKey: "TOP_SECRET",
-      jwtFromRequest: ExtractJWT.fromUrlQueryParameter("secret_token"),
-    },
-    async (token, done) => {
-      try {
-        return done(null, token.user);
-      } catch (error) {
-        done(error);
-      }
-    }
-  )
-);
+  });
+};

@@ -1,25 +1,137 @@
 const Article = require("../models/article");
+const User = require("../models/user");
+const Category = require("../models/category");
+const Comment = require("../models/comment");
 const asyncHandler = require("express-async-handler");
+const { verifyJWT } = require("../auth/auth");
+const { body, validationResult } = require("express-validator");
 
 exports.index = asyncHandler(async (req, res, next) => {
   res.json("NOT IMPLEMENTED: Article Index");
 });
 
 exports.list = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: Article List");
+  const allArticles = await Article.find({}, "title user likes views")
+    .populate("user", "username")
+    .exec();
+
+  res.json(allArticles);
 });
 
 exports.read = asyncHandler(async (req, res, next) => {
-  res.json(`NOT IMPLEMENTED: Article read: ${req.params.id}`);
+  const user = await Article.findById(req.params.id)
+    .populate("comments")
+    .exec();
+
+  res.json(user);
 });
 
-exports.create = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: Article create POST");
-});
+exports.create = [
+  body("title")
+    .trim()
+    .isLength({ min: 6, max: 60 })
+    .withMessage("Title must be between 6 and 60 characters")
+    .escape(),
+  body("category")
+    .trim()
+    .isLength({ min: 4, max: 16 })
+    .withMessage("Category must be between 4 and 16 characters")
+    .custom(async (category, { req }) => {
+      let id = await Category.exists({ name: category });
+      if (!id) {
+        throw new Error("Category does not exist");
+      }
 
-exports.delete = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: Article delete POST");
-});
+      req.category_id = id;
+      return true;
+    }),
+  body("text")
+    .trim()
+    .isLength({ min: 6, max: 255 })
+    .withMessage("Text must be between 6 and 255 characters")
+    .escape(),
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    let { title, text } = req.body;
+
+    const [user, category] = await Promise.all([
+      User.findById(req.currentUser.id).populate("articles").exec(),
+      Category.findById(req.category_id).populate("articles").exec(),
+    ]);
+
+    let article = new Article({
+      user: req.currentUser.id,
+      title: title,
+      category: req.category_id,
+      text: text,
+      likes: 0,
+      views: 0,
+      comments: [],
+      published: true,
+    });
+
+    user.articles.push(article._id);
+    category.articles.push(article._id);
+
+    await Promise.all([article.save(), user.save(), category.save()]);
+
+    res.json({ message: "Created New Article" });
+  }),
+];
+
+exports.delete = [
+  body("title")
+    .trim()
+    .isLength({ min: 6, max: 60 })
+    .withMessage("Title must be between 6 and 60 characters")
+    .custom(async (title, { req }) => {
+      let article = await Article.findById(req.params.id, "title");
+
+      if (title !== article.title) {
+        throw new Error("Title does not match");
+      }
+
+      return true;
+    })
+    .escape(),
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    let [article, user] = await Promise.all([
+      Article.findById(req.params.id, "title comments category")
+        .populate("comments", "_id")
+        .populate("category", "articles")
+        .exec(),
+      User.findById(req.currentUser.id).populate("articles").exec(),
+    ]);
+
+    console.log(article, user);
+
+    let comment_ids = article.comments.map((c) => c._id);
+    let category = article.category;
+
+    category.articles.pull(article._id);
+    user.articles.pull(article._id);
+
+    await Promise.all([
+      article.deleteOne(),
+      Comment.deleteMany({ _id: { $in: comment_ids } }),
+      category.save(),
+      user.save(),
+    ]);
+
+    res.json({ message: `Article '${article.title}' deleted` });
+  }),
+];
 
 exports.update = asyncHandler(async (req, res, next) => {
   res.json("NOT IMPLEMENTED: Article update POST");

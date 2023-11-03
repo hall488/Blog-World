@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const bodyParser = require("body-parser");
 const indexRouter = require("./routes/index");
 const usersRouter = require("./routes/users");
 const commentsRouter = require("./routes/comments");
@@ -19,6 +20,8 @@ async function main() {
 const app = express();
 
 app.use(cors());
+app.use(bodyParser.json({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
