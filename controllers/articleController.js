@@ -3,7 +3,6 @@ const User = require("../models/user");
 const Category = require("../models/category");
 const Comment = require("../models/comment");
 const asyncHandler = require("express-async-handler");
-const { verifyJWT } = require("../auth/auth");
 const { body, validationResult } = require("express-validator");
 
 exports.index = asyncHandler(async (req, res, next) => {
@@ -24,6 +23,19 @@ exports.read = asyncHandler(async (req, res, next) => {
     .exec();
 
   res.json(user);
+});
+
+exports.like = asyncHandler(async (req, res, next) => {
+  const article = await Article.findById(req.params.id).exec();
+
+  console.log(article);
+  if (article.likes.includes(req.currentUser.id)) {
+    return res.status(422).json({ message: "User already liked this" });
+  }
+
+  article.likes.push(req.currentUser.id);
+  await article.save();
+  res.json({ messagee: `${req.currentUser.username} liked ${article.title}` });
 });
 
 exports.create = [
@@ -114,8 +126,6 @@ exports.delete = [
       User.findById(req.currentUser.id).populate("articles").exec(),
     ]);
 
-    console.log(article, user);
-
     let comment_ids = article.comments.map((c) => c._id);
     let category = article.category;
 
@@ -133,6 +143,69 @@ exports.delete = [
   }),
 ];
 
-exports.update = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: Article update POST");
-});
+exports.update = [
+  body("title")
+    .optional({ values: undefined })
+    .trim()
+    .isLength({ min: 6, max: 60 })
+    .withMessage("Title must be between 6 and 60 characters")
+    .escape(),
+  body("category")
+    .optional({ values: undefined })
+    .trim()
+    .isLength({ min: 4, max: 16 })
+    .withMessage("Category must be between 4 and 16 characters")
+    .custom(async (category, { req }) => {
+      let id = await Category.exists({ name: category });
+      if (!id) {
+        throw new Error("Category does not exist");
+      }
+
+      req.category_id = id;
+      return true;
+    }),
+  body("text")
+    .optional({ values: undefined })
+    .trim()
+    .isLength({ min: 6, max: 255 })
+    .withMessage("Text must be between 6 and 255 characters")
+    .escape(),
+  body("published").optional({ values: undefined }).isBoolean().escape(),
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    let article = await Article.findById(req.params.id)
+      .populate("category", "articles")
+      .exec();
+
+    if (req.body.category !== undefined) {
+      let category = await Category.findOne({ name: req.body.category })
+        .populate("articles")
+        .exec();
+      article.category.articles.pull(article._id);
+      category.articles.push(article._id);
+      await Promise.all([category.save(), article.category.save()]);
+      article.category = category._id;
+    }
+
+    if (req.body.text !== undefined) {
+      article.text = req.body.text;
+    }
+
+    if (req.body.title !== undefined) {
+      article.title = req.body.title;
+    }
+
+    if (req.body.published !== undefined) {
+      article.published = req.body.published;
+    }
+
+    await article.save();
+
+    res.json({ message: "Updated article" });
+  }),
+];

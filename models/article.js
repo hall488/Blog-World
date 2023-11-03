@@ -7,7 +7,7 @@ const ArticleSchema = new Schema({
   title: { type: String, required: true },
   category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
   text: { type: String, required: true },
-  likes: { type: Number, required: true },
+  likes: [{ type: Schema.Types.ObjectId, ref: "User" }],
   views: { type: Number, required: true },
   comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
   published: { type: Boolean, required: true },

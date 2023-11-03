@@ -12,6 +12,8 @@ router.post("/create", currentUser, controller.create);
 
 router.post("/:id/delete", verifyArticle, controller.delete);
 
+router.post("/:id/like", currentUser, controller.like);
+
 router.post("/:id/update", verifyArticle, controller.update);
 
 router.get("/:id", controller.read);

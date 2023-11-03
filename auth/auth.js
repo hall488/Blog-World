@@ -41,7 +41,6 @@ exports.currentUser = (req, res, next) => {
       return res.json(err);
     } else {
       req.currentUser = decoded;
-
       next();
     }
   });
