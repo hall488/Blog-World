@@ -18,11 +18,11 @@ exports.list = asyncHandler(async (req, res, next) => {
 });
 
 exports.read = asyncHandler(async (req, res, next) => {
-  const user = await Article.findById(req.params.id)
+  const article = await Article.findById(req.params.id)
     .populate("comments")
     .exec();
 
-  res.json(user);
+  res.json(article);
 });
 
 exports.like = asyncHandler(async (req, res, next) => {

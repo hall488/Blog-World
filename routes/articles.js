@@ -1,21 +1,42 @@
 const express = require("express");
 const router = express.Router();
 
-const controller = require("../controllers/articleController");
-const { currentUser, verifyArticle } = require("../auth/auth");
+const article_controller = require("../controllers/articleController");
+const comment_controller = require("../controllers/commentController");
+const { currentUser, verifyArticle, verifyComment } = require("../auth/auth");
 
-router.get("/", controller.index);
+router.get("/", article_controller.index);
 
-router.get("/list", controller.list);
+router.get("/list", article_controller.list);
 
-router.post("/create", currentUser, controller.create);
+router.post("/create", currentUser, article_controller.create);
 
-router.post("/:id/delete", verifyArticle, controller.delete);
+router.post("/:id/delete", verifyArticle, article_controller.delete);
 
-router.post("/:id/like", currentUser, controller.like);
+router.post("/:id/like", currentUser, article_controller.like);
 
-router.post("/:id/update", verifyArticle, controller.update);
+router.post("/:id/update", verifyArticle, article_controller.update);
 
-router.get("/:id", controller.read);
+router.get("/:id/comments", comment_controller.index);
+
+router.get("/:id/comments", comment_controller.list);
+
+router.post("/:id/comments/create", currentUser, comment_controller.create);
+
+router.post(
+  "/:id/comments/:cid/delete",
+  verifyComment,
+  comment_controller.delete
+);
+
+router.post(
+  "/:id/comments/:cid/update",
+  verifyComment,
+  comment_controller.update
+);
+
+router.get("/:id/comments/:cid", comment_controller.read);
+
+router.get("/:id", article_controller.read);
 
 module.exports = router;

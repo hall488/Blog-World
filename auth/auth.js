@@ -35,6 +35,26 @@ exports.verifyArticle = (req, res, next) => {
   });
 };
 
+exports.verifyComment = (req, res, next) => {
+  jwt.verify(req.body.token, process.env.JWT_KEY, async (err, decoded) => {
+    if (err) {
+      return res.json(err);
+    } else {
+      let comment = await Comment.findById(req.params.cid)
+        .populate("user")
+        .exec();
+      if (!comment) {
+        return res.status(422).json({ error: "Comment does not exist" });
+      } else if (comment.user.id !== decoded.id) {
+        return res.status(422).json({ error: "Unauthorized" });
+      } else {
+        req.currentUser = decoded;
+        next();
+      }
+    }
+  });
+};
+
 exports.currentUser = (req, res, next) => {
   jwt.verify(req.body.token, process.env.JWT_KEY, (err, decoded) => {
     if (err) {

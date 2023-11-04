@@ -5,7 +5,6 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const indexRouter = require("./routes/index");
 const usersRouter = require("./routes/users");
-const commentsRouter = require("./routes/comments");
 const articlesRouter = require("./routes/articles");
 const categoriesRouter = require("./routes/categories");
 
@@ -25,7 +24,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
-app.use("/comments", commentsRouter);
 app.use("/articles", articlesRouter);
 app.use("/categories", categoriesRouter);
 

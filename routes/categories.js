@@ -2,12 +2,13 @@ const express = require("express");
 const router = express.Router();
 
 const controller = require("../controllers/categoryController");
+const { currentUser } = require("../auth/auth");
 
 router.get("/", controller.index);
 
 router.get("/list", controller.list);
 
-router.post("/create", controller.create);
+router.post("/create", currentUser, controller.create);
 
 router.post("/:id/delete", controller.delete);
 
