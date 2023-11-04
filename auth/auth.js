@@ -1,6 +1,7 @@
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const Article = require("../models/article");
+const Comment = require("../models/comment");
 
 exports.verifyUser = (req, res, next) => {
   jwt.verify(req.body.token, process.env.JWT_KEY, (err, decoded) => {

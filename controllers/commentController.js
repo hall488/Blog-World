@@ -9,16 +9,16 @@ exports.index = asyncHandler(async (req, res, next) => {
 });
 
 exports.list = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: Comment List");
+  const article = await Article.findById(req.params.id, "comments")
+    .populate("comments")
+    .exec();
+
+  res.json(article.comments);
 });
 
 exports.read = asyncHandler(async (req, res, next) => {
   res.json(`NOT IMPLEMENTED: Comment read: ${req.params.id}`);
 });
-
-// user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-//   text: { type: String, required: true },
-//   likes: { type: Number, required: true },
 
 exports.create = [
   body("text")
@@ -33,11 +33,6 @@ exports.create = [
       return res.status(422).json({ errors: errors.array() });
     }
 
-    //create comment
-    //add comment to article
-    //add comment to user
-    console.log(req.params.id);
-
     let [user, article] = await Promise.all([
       User.findById(req.currentUser.id).populate("comments").exec(),
       Article.findById(req.params.id).populate("comments title").exec(),
@@ -49,8 +44,6 @@ exports.create = [
       likes: 0,
     });
 
-    console.log(user, article);
-
     user.comments.push(comment._id);
     article.comments.push(comment._id);
 
@@ -61,9 +54,47 @@ exports.create = [
 ];
 
 exports.delete = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: Comment delete POST");
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
+  let [article, user, comment] = await Promise.all([
+    Article.findById(req.params.id).populate("comments title").exec(),
+    User.findById(req.currentUser.id).populate("comments").exec(),
+    Comment.findById(req.params.cid).exec(),
+  ]);
+
+  article.comments.pull(req.params.cid);
+  user.comments.pull(req.params.cid);
+
+  await Promise.all([article.save(), user.save(), comment.deleteOne()]);
+
+  res.json({
+    message: `${req.currentUser.username} deleted comment on ${article.title}`,
+  });
 });
 
-exports.update = asyncHandler(async (req, res, next) => {
-  res.json("NOT IMPLEMENTED: Comment update POST");
-});
+exports.update = [
+  body("text")
+    .trim()
+    .isLength({ min: 6, max: 255 })
+    .withMessage("Text must be between 6 and 255 characters")
+    .escape(),
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    let comment = await Comment.findById(req.params.cid).exec();
+
+    comment.text = req.body.text;
+
+    await comment.save();
+
+    res.json({ message: `Comment Updated` });
+  }),
+];

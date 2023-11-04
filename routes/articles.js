@@ -17,8 +17,6 @@ router.post("/:id/like", currentUser, article_controller.like);
 
 router.post("/:id/update", verifyArticle, article_controller.update);
 
-router.get("/:id/comments", comment_controller.index);
-
 router.get("/:id/comments", comment_controller.list);
 
 router.post("/:id/comments/create", currentUser, comment_controller.create);
