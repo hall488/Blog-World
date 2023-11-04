@@ -2,11 +2,13 @@ const express = require("express");
 const router = express.Router();
 
 const controller = require("../controllers/userController");
-const { verifyUser } = require("../auth/auth");
+const { currentUser, verifyUser } = require("../auth/auth");
 
 router.get("/", controller.index);
 
 router.get("/list", controller.list);
+
+router.post("/verify", currentUser, controller.verify);
 
 router.post("/login", controller.login);
 

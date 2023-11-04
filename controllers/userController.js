@@ -8,6 +8,10 @@ exports.index = asyncHandler(async (req, res, next) => {
   res.json("NOT IMPLEMENTED: User Index");
 });
 
+exports.verify = asyncHandler(async (req, res, next) => {
+  res.json(req.currentUser);
+});
+
 exports.list = asyncHandler(async (req, res, next) => {
   const allUsers = await User.find({}, "username articles comments")
     .populate("articles", "title")
