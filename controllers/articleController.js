@@ -19,7 +19,12 @@ exports.list = asyncHandler(async (req, res, next) => {
 
 exports.read = asyncHandler(async (req, res, next) => {
   const article = await Article.findById(req.params.id)
-    .populate("comments")
+    .populate("user", "username")
+    .populate("category")
+    .populate({
+      path: "comments",
+      populate: { path: "user", select: "username" },
+    })
     .exec();
 
   res.json(article);
@@ -59,8 +64,8 @@ exports.create = [
     }),
   body("text")
     .trim()
-    .isLength({ min: 6, max: 255 })
-    .withMessage("Text must be between 6 and 255 characters")
+    .isLength({ min: 6, max: 64000 })
+    .withMessage("Text must be between 6 and 64000 characters")
     .escape(),
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
@@ -81,7 +86,7 @@ exports.create = [
       title: title,
       category: req.category_id,
       text: text,
-      likes: 0,
+      likes: [],
       views: 0,
       comments: [],
       published: true,
@@ -92,7 +97,7 @@ exports.create = [
 
     await Promise.all([article.save(), user.save(), category.save()]);
 
-    res.json({ message: "Created New Article" });
+    res.json({ message: "Created New Article", id: article._id });
   }),
 ];
 
@@ -167,8 +172,8 @@ exports.update = [
   body("text")
     .optional({ values: undefined })
     .trim()
-    .isLength({ min: 6, max: 255 })
-    .withMessage("Text must be between 6 and 255 characters")
+    .isLength({ min: 6, max: 64000 })
+    .withMessage("Text must be between 6 and 64000 characters")
     .escape(),
   body("published").optional({ values: undefined }).isBoolean().escape(),
   asyncHandler(async (req, res, next) => {

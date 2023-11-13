@@ -47,7 +47,7 @@ exports.create = [
 
     await category.save();
 
-    res.json(`${req.body.name} category created`);
+    res.json({ message: "Created New Category", id: category._id });
   }),
 ];
 

@@ -15,9 +15,12 @@ UserSchema.virtual("url").get(function () {
 });
 
 UserSchema.pre("save", async function (next) {
-  const hash = await bcrypt.hash(this.password, 10);
+  if (this.isModified("password")) {
+    const hash = await bcrypt.hash(this.password, 10);
 
-  this.password = hash;
+    this.password = hash;
+  }
+
   next();
 });
 

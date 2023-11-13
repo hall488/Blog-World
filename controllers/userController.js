@@ -75,7 +75,13 @@ exports.signup = [
 
     await user.save();
 
-    res.json(`Welcome ${username}!`);
+    let token = jwt.sign(
+      { id: user.id, username: req.body.username },
+      process.env.JWT_KEY,
+      { expiresIn: "1d" }
+    );
+
+    res.json({ id: user.id, token });
   }),
 ];
 
@@ -83,7 +89,7 @@ exports.login = [
   body("username")
     .trim()
     .isLength({ min: 6, max: 16 })
-    .withMessage("Password must be between 6 and 16 characters")
+    .withMessage("Username must be between 6 and 16 characters")
     .custom(async (username) => {
       if (!(await User.exists({ username: username }))) {
         throw new Error("User not found");
@@ -97,6 +103,7 @@ exports.login = [
     .withMessage("Password must be between 6 and 16 characters")
     .custom(async (password, { req }) => {
       let user = await User.findOne({ username: req.body.username });
+      if (!user) return false;
       if (!(await user.isValidPassword(password))) {
         throw new Error("Invalid password");
       }
@@ -107,7 +114,9 @@ exports.login = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      return res.status(422).json({ errors: errors.array() });
+      return res
+        .status(422)
+        .json({ errors: [{ path: "ic", msg: "Invalid Credentials" }] });
     }
 
     let user = await User.findOne({ username: req.body.username }).exec();
